@@ -1,0 +1,250 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Selenium Actions Practice Lab</title>
+    <style>
+        body { font-family: sans-serif; background: #f0f2f5; display: flex; flex-wrap: wrap; justify-content: center; gap: 20px; padding: 20px; }
+        .card { background: white; border-radius: 8px; padding: 20px; width: 300px; box-shadow: 0 2px 10px rgba(0,0,0,0.1); text-align: center; }
+        h3 { margin-top: 0; color: #333; border-bottom: 2px solid #eee; padding-bottom: 10px; }
+        
+        /* Hover Styles */
+        #hover-menu { background: #3498db; color: white; padding: 10px; cursor: pointer; border-radius: 4px; }
+        #extra-content { display: none; margin-top: 10px; background: #ecf0f1; padding: 10px; border: 1px solid #bdc3c7; }
+        #hover-card:hover #extra-content { display: block; }
+
+        /* Drag and Drop Styles */
+        #draggable { width: 80px; height: 80px; background: #e74c3c; color: white; line-height: 80px; cursor: move; margin: 10px auto; border-radius: 4px; }
+        #droppable { width: 150px; height: 100px; border: 2px dashed #95a5a6; margin: 10px auto; line-height: 100px; color: #95a5a6; }
+        .dropped { background: #2ecc71 !important; color: white !important; border-style: solid !important; }
+
+        /* Right Click Styles */
+        #context-area { width: 100%; height: 100px; background: #9b59b6; color: white; display: flex; align-items: center; justify-content: center; cursor: context-menu; border-radius: 4px; }
+        
+        /* Double Click Styles */
+        #db-click-area { width: 100%; height: 100px; background: #f1c40f; color: #333; display: flex; align-items: center; justify-content: center; cursor: pointer; border-radius: 4px; font-weight: bold; }
+
+        .status-msg { font-size: 0.85rem; margin-top: 10px; color: #7f8c8d; font-style: italic; }
+    </style>
+</head>
+<body>
+
+    <div class="card">
+    <h3>Resize Handle</h3>
+    <div id="resizable-box" style="width: 150px; height: 100px; background: #34495e; color: white; margin: 10px auto; position: relative; overflow: hidden; display: flex; align-items: center; justify-content: center;">
+        Resize Me
+        <div id="resizer" style="width: 15px; height: 15px; background: #f1c40f; position: absolute; right: 0; bottom: 0; cursor: nwse-resize;"></div>
+    </div>
+    <p id="resize-status" class="status-msg">Target: Width > 250px</p>
+</div>
+
+<div class="card">
+    <h3>Flyout Menu</h3>
+    <div id="main-menu" style="background: #3498db; color: white; padding: 10px; cursor: pointer;">Settings ⚙️</div>
+    <div id="sub-menu" style="display: none; background: #2980b9; color: white; padding: 10px; margin-top: 5px;">
+        Advanced Settings
+        <div id="deep-action" style="background: #e67e22; margin-top: 5px; padding: 5px; cursor: pointer;">Activate Mode</div>
+    </div>
+    <p id="menu-status" class="status-msg">Hover Settings -> Hover Advanced -> Click Activate</p>
+</div>
+
+<script>
+    // Resize Logic
+    const box = document.getElementById('resizable-box');
+    const resizer = document.getElementById('resizer');
+    let isResizing = false;
+
+    resizer.addEventListener('mousedown', (e) => { isResizing = true; });
+    window.addEventListener('mousemove', (e) => {
+        if (isResizing) {
+            const newWidth = e.clientX - box.getBoundingClientRect().left;
+            box.style.width = newWidth + 'px';
+            if(newWidth > 250) {
+                document.getElementById('resize-status').innerText = "Success: Box Expanded!";
+                document.getElementById('resize-status').style.color = "green";
+            }
+        }
+    });
+    window.addEventListener('mouseup', () => { isResizing = false; });
+
+    // Flyout Logic
+    const main = document.getElementById('main-menu');
+    const sub = document.getElementById('sub-menu');
+    const deep = document.getElementById('deep-action');
+
+    main.addEventListener('mouseenter', () => { sub.style.display = 'block'; });
+    // Note: If mouse leaves the card area, we hide it for better testing
+    document.querySelector('#main-menu').parentElement.addEventListener('mouseleave', () => { 
+        sub.style.display = 'none'; 
+    });
+    deep.addEventListener('click', () => {
+        document.getElementById('menu-status').innerText = "Flyout Validated!";
+        document.getElementById('menu-status').style.color = "green";
+    });
+</script>
+    <div class="card" style="width: 450px;">
+    <h3>Canvas Draw (Actions Class)</h3>
+    <canvas id="paint-canvas" width="400" height="150" style="border:1px solid #000; background: #fff; cursor: crosshair;"></canvas>
+    <p id="canvas-status" class="status-msg">Draw a line from (50,50) to (200,50)</p>
+    <button onclick="document.getElementById('paint-canvas').getContext('2d').clearRect(0,0,400,150)">Clear</button>
+</div>
+
+<div class="card">
+    <h3>Hold for 2 Seconds</h3>
+    <button id="hold-btn" style="padding: 20px; background: #e74c3c; color: white; border: none; border-radius: 50%; width: 100px; height: 100px; cursor: pointer;">HOLD</button>
+    <div id="progress-bar" style="width: 0%; height: 5px; background: green; margin-top: 10px; transition: width 2s linear;"></div>
+    <p id="hold-status" class="status-msg">Release early = Failure</p>
+</div>
+
+<script>
+    // Canvas Logic
+    const canvas = document.getElementById('paint-canvas');
+    const ctx = canvas.getContext('2d');
+    let drawing = false;
+
+    canvas.onmousedown = (e) => { drawing = true; ctx.beginPath(); ctx.moveTo(e.offsetX, e.offsetY); };
+    canvas.onmousemove = (e) => { if(drawing) { ctx.lineTo(e.offsetX, e.offsetY); ctx.stroke(); } };
+    canvas.onmouseup = () => { drawing = false; document.getElementById('canvas-status').innerText = "Drawing detected!"; };
+
+    // Hold Logic
+    const holdBtn = document.getElementById('hold-btn');
+    const bar = document.getElementById('progress-bar');
+    let timer;
+
+    holdBtn.onmousedown = () => {
+        bar.style.width = "100%";
+        timer = setTimeout(() => {
+            holdBtn.style.background = "#2ecc71";
+            holdBtn.innerText = "DONE";
+            document.getElementById('hold-status').innerText = "Success!";
+        }, 2000);
+    };
+
+    holdBtn.onmouseup = () => {
+        clearTimeout(timer);
+        if(holdBtn.innerText !== "DONE") {
+            bar.style.width = "0%";
+            document.getElementById('hold-status').innerText = "Failed: Released too early!";
+        }
+    };
+</script>
+    <div class="card">
+    <h3>Offset Slider</h3>
+    <input type="range" id="slider" min="0" max="100" value="0" style="width: 80%;">
+    <p>Value: <span id="slider-val">0</span></p>
+    <p class="status-msg">Use moveByOffset() to slide</p>
+</div>
+
+<div class="card">
+    <h3>Multi-Select (Ctrl+Click)</h3>
+    <ul id="selectable-list" style="list-style: none; padding: 0; text-align: left;">
+        <li style="padding: 5px; border: 1px solid #ddd; margin: 2px; cursor: pointer;">Item 1</li>
+        <li style="padding: 5px; border: 1px solid #ddd; margin: 2px; cursor: pointer;">Item 2</li>
+        <li style="padding: 5px; border: 1px solid #ddd; margin: 2px; cursor: pointer;">Item 3</li>
+    </ul>
+    <p id="list-status" class="status-msg">Hold Ctrl and Click items</p>
+</div>
+
+<div class="card">
+    <h3>Hover Tooltip</h3>
+    <div id="tooltip-trigger" style="text-decoration: underline; color: blue; cursor: help;">
+        Hover for Secret Code
+    </div>
+    <div id="tooltip-box" style="visibility: hidden; background: black; color: white; padding: 5px; border-radius: 4px; position: absolute;">
+        CODE: 2026-BETA
+    </div>
+    <p class="status-msg">Validate the text inside the tooltip</p>
+</div>
+
+<script>
+    // Slider Logic
+    const slider = document.getElementById('slider');
+    slider.oninput = function() { document.getElementById('slider-val').innerText = this.value; }
+
+    // Multi-select Logic
+    document.querySelectorAll('#selectable-list li').forEach(item => {
+        item.onclick = function(e) {
+            if (e.ctrlKey) {
+                this.style.background = '#3498db';
+                this.style.color = 'white';
+            } else {
+                // Clear others if Ctrl not held
+                document.querySelectorAll('#selectable-list li').forEach(i => {
+                    i.style.background = 'none';
+                    i.style.color = 'black';
+                });
+                this.style.background = '#3498db';
+                this.style.color = 'white';
+            }
+        };
+    });
+
+    // Tooltip Logic
+    const trigger = document.getElementById('tooltip-trigger');
+    const tooltip = document.getElementById('tooltip-box');
+    trigger.onmouseover = () => tooltip.style.visibility = 'visible';
+    trigger.onmouseout = () => tooltip.style.visibility = 'hidden';
+</script>
+
+    <div class="card">
+        <h3>Double Click</h3>
+        <div id="db-click-area">Double Click Me</div>
+        <p id="db-status" class="status-msg">Waiting...</p>
+    </div>
+
+    <div id="hover-card" class="card">
+        <h3>Move to Element</h3>
+        <div id="hover-menu">Hover Over Me</div>
+        <div id="extra-content">
+            <button id="hidden-button" onclick="document.getElementById('hover-status').innerText='Button Clicked!'">Hidden Button</button>
+        </div>
+        <p id="hover-status" class="status-msg">Hover to reveal button</p>
+    </div>
+
+    <div class="card">
+        <h3>Drag and Drop</h3>
+        <div id="draggable" draggable="true">DRAG</div>
+        <div id="droppable">DROP HERE</div>
+        <p id="drag-status" class="status-msg">Waiting for drop...</p>
+    </div>
+
+    <div class="card">
+        <h3>Context Click</h3>
+        <div id="context-area">Right Click Me</div>
+        <p id="context-status" class="status-msg">Waiting for right-click...</p>
+    </div>
+
+    <script>
+        // Double Click Logic
+        const dbArea = document.getElementById('db-click-area');
+        dbArea.addEventListener('dblclick', () => {
+            dbArea.style.background = '#27ae60';
+            dbArea.innerText = 'Success!';
+            document.getElementById('db-status').innerText = 'Double-click validated.';
+        });
+
+        // Context Click Logic
+        const ctxArea = document.getElementById('context-area');
+        ctxArea.addEventListener('contextmenu', (e) => {
+            e.preventDefault();
+            ctxArea.style.background = '#8e44ad';
+            document.getElementById('context-status').innerText = 'Right-click detected!';
+        });
+
+        // Drag and Drop Logic
+        const drag = document.getElementById('draggable');
+        const drop = document.getElementById('droppable');
+        
+        drag.addEventListener('dragstart', (e) => e.dataTransfer.setData('text', 'dragged'));
+        drop.addEventListener('dragover', (e) => e.preventDefault());
+        drop.addEventListener('drop', (e) => {
+            e.preventDefault();
+            drop.classList.add('dropped');
+            drop.innerText = "Target Hit!";
+            drag.style.display = 'none';
+            document.getElementById('drag-status').innerText = 'Drop validated.';
+        });
+    </script>
+</body>
+</html>
